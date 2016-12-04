@@ -12,7 +12,7 @@
 
 /* http://www.cs.mun.ca/~rod/Winter2007/4723/notes/serial/serial.html */
 
-void uart0_init(void)
+void uart0_initialize(void)
 {
     UBRR0H = UBRRH_VALUE;
     UBRR0L = UBRRL_VALUE;
@@ -25,7 +25,7 @@ void uart0_init(void)
     UCSR0B = _BV(RXEN0) | _BV(TXEN0);   /* Enable RX and TX */
 }
 
-void uart3_init(void)
+void uart3_initialize(void)
 {
     UBRR3H = UBRRH_VALUE;
     UBRR3L = UBRRL_VALUE;
