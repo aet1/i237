@@ -4,24 +4,43 @@
 #include <util/delay.h>
 #include <string.h>
 #include "hmi_msg.h"
-#include "uart.h"
+#include "uart_wrapper.h"
 #include "print_helper.h"
 #include "../lib/hd44780_111/hd44780.h"
-
+#include <util/atomic.h>
+#include <avr/interrupt.h>
+#include "../lib/andygock_avr-uart/uart.h"
 
 #define BLINK_DELAY_MS 100
+#define BAUD 9600
+#define COUNT
 
-void main (void)
-{
+volatile uint32_t count_1;
+
+static inline void init_uart(void) {
     /* Set pin 3 of PORTA for output */
     DDRA |= _BV(DDA3);
     /* Init error console as stderr in UART3 and print user code info */
-    uart0_initialize();
-    uart3_initialize();
+    uart0_init(BAUD_SELECT(BAUD, F_CPU));
+    uart3_init(BAUD_SELECT(BAUD, F_CPU));
     stdout = stdin = &uart0_io;
     stderr = &uart3_out;
     lcd_init();
     lcd_clrscr();
+
+}
+
+static inline void init_count(void) {
+    count_1 = 0;
+    TCCR1A = 0;
+    TCCR1B = 0;
+    TCCR1B |= _BV(WGM12);
+    TCCR1B |= _BV(CS12);
+    OCR1A = 62549;
+    TIMSK1 |= _BV(OCIE1A);
+}
+
+static inline void start_print(void) {
     fprintf_P(stderr, PSTR(PRG_VER "\n"),
               GIT_DESCR, __DATE__, __TIME__);
     fprintf_P(stderr, PSTR(LIBC_VER "\n"), __AVR_LIBC_VERSION_STRING__,
@@ -38,7 +57,10 @@ void main (void)
     }
 
     print_for_human(stdout, ascii_table, 128);
+    fprintf_P(stdout, PSTR(GET_MONTH_NAME));
+}
 
+static inline void print_month(void) {
     while (1) {
         /* Set pin 3 high to turn LED on */
         PORTA |= _BV(PORTA3);
@@ -64,4 +86,39 @@ void main (void)
         PORTA &= ~_BV(PORTA3);
         _delay_ms(BLINK_DELAY_MS);
     }
+}
+
+static inline void heartbeat(void) {
+    static uint32_t prev_time;
+    uint32_t new_time;
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+        new_time = counter_1;
+    }
+
+    if (new_time != prev_time) {
+        /* Toggle LED in Arduino Mega pin 25 */
+        PORTA ^= _BV(PORTA3);
+        fprintf_P(stderr, PSTR(UPTIME_TEXT": %lu s \n"), new_time);
+        prev_time = new_time;
+    }
+}
+
+
+void main (void) {
+    init_uart();
+    init_count();
+    sei();
+    start_print();
+
+    while (1) {
+        heartbeat();
+        if (uart0_available()) {
+            print_month();
+        }
+    }
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+    count_1++;
 }
