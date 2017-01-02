@@ -16,7 +16,6 @@ int uart0_putchar(char c, FILE *stream)
 
     uart0_putc((uint8_t) c);
     return 0;
-    
 }
 
 int uart3_putchar(char c, FILE *stream)
@@ -36,7 +35,9 @@ int uart3_putchar(char c, FILE *stream)
 int uart0_getchar(FILE *stream)
 {
     (void) stream;
+
     while (uart0_peek() == UART_NO_DATA);
+
     return (uart0_getc() & UART_STATUS_MASK);
 }
 

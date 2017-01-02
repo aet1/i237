@@ -10,27 +10,38 @@
 #include <util/atomic.h>
 #include <avr/interrupt.h>
 #include "../lib/andygock_avr-uart/uart.h"
+#include "../lib/helius_microrl/microrl.h"
+#include "cli_microrl.h"
 
 #define BLINK_DELAY_MS 100
-#define BAUD 9600
+#define UART_BAUD 9600
 #define COUNT
+
+// Create microrl object and pointer on it
+static microrl_t rl;
+static microrl_t *prl = &rl;
 
 volatile uint32_t count_1;
 
-static inline void init_uart(void) {
+static inline void init_uart(void)
+{
     /* Set pin 3 of PORTA for output */
     DDRA |= _BV(DDA3);
     /* Init error console as stderr in UART3 and print user code info */
-    uart0_init(UART_BAUD_SELECT(BAUD, F_CPU));
-    uart3_init(UART_BAUD_SELECT(BAUD, F_CPU));
-    stdout = stdin = &uart0_io;
+    uart0_init(UART_BAUD_SELECT(UART_BAUD, F_CPU));
+    uart3_init(UART_BAUD_SELECT(UART_BAUD, F_CPU));
     stderr = &uart3_out;
+    stdout = stdin = &uart0_io;
+    // Call init with ptr to microrl instance and print callback
+    microrl_init (prl, cli_print);
+    // Set callback for execute
+    microrl_set_execute_callback (prl, cli_execute);
     lcd_init();
     lcd_clrscr();
-
 }
 
-static inline void init_count(void) {
+static inline void init_count(void)
+{
     count_1 = 0;
     TCCR1A = 0;
     TCCR1B = 0;
@@ -40,55 +51,19 @@ static inline void init_count(void) {
     TIMSK1 |= _BV(OCIE1A);
 }
 
-static inline void start_print(void) {
-    fprintf_P(stderr, PSTR(PRG_VER "\n"),
-              GIT_DESCR, __DATE__, __TIME__);
-    fprintf_P(stderr, PSTR(LIBC_VER "\n"), __AVR_LIBC_VERSION_STRING__,
-              __VERSION__);
-    /* End UART3 init and info print */
+static inline void start_print(void)
+{
+    /*Print version libc info*/
+    fprintf_P(stderr, PSTR(VER_FW "\n"));
+    fprintf_P(stderr, PSTR(VER_LIBC " " VER_GCC"\n"));
+    /* Print student name */
     fprintf_P(stdout, PSTR(STUD_NAME "\n"));
     lcd_puts_P(PSTR(STUD_NAME));
-    /* ASCII table print */
-    print_ascii_tbl(stdout);
-    unsigned char ascii_table[128] = {0};
-
-    for (unsigned char i = 0; i < sizeof(ascii_table); i++) {
-        ascii_table[i] = i;
-    }
-
-    print_for_human(stdout, ascii_table, 128);
-    fprintf_P(stdout, PSTR(GET_MONTH_NAME));
 }
 
-static inline void print_month(void) {
-    while (1) {
-        /* Set pin 3 high to turn LED on */
-        PORTA |= _BV(PORTA3);
-        _delay_ms(BLINK_DELAY_MS);
-        /* Month name comparison and print */
-        char letter;
-        fprintf_P(stdout, PSTR(GET_MONTH_NAME));
-        fscanf(stdin, "%c", &letter);
-        fprintf(stdout, "%c\n", letter);
-        lcd_goto(0x40);
 
-        for (int i = 0; i < 6; i++) {
-            if (!strncmp_P(&letter, (PGM_P)pgm_read_word(&months[i]), 1)) {
-                fprintf_P(stdout, (PGM_P)pgm_read_word(&months[i]));
-                fputc('\n', stdout);
-                lcd_puts_P((PGM_P)pgm_read_word(&months[i]));
-                lcd_putc(' ');
-            }
-        }
-
-        lcd_puts_P(PSTR("                "));
-        /* Set pin 3 low to turn LED off */
-        PORTA &= ~_BV(PORTA3);
-        _delay_ms(BLINK_DELAY_MS);
-    }
-}
-
-static inline void heartbeat(void) {
+static inline void heartbeat(void)
+{
     static uint32_t prev_time;
     uint32_t new_time;
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
@@ -104,7 +79,8 @@ static inline void heartbeat(void) {
 }
 
 
-void main (void) {
+void main (void)
+{
     init_uart();
     init_count();
     sei();
@@ -112,9 +88,7 @@ void main (void) {
 
     while (1) {
         heartbeat();
-        if (uart0_available()) {
-            print_month();
-        }
+        microrl_insert_char (prl, cli_get_char());
     }
 }
 
