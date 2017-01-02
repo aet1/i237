@@ -21,8 +21,8 @@ static inline void init_uart(void) {
     /* Set pin 3 of PORTA for output */
     DDRA |= _BV(DDA3);
     /* Init error console as stderr in UART3 and print user code info */
-    uart0_init(BAUD_SELECT(BAUD, F_CPU));
-    uart3_init(BAUD_SELECT(BAUD, F_CPU));
+    uart0_init(UART_BAUD_SELECT(BAUD, F_CPU));
+    uart3_init(UART_BAUD_SELECT(BAUD, F_CPU));
     stdout = stdin = &uart0_io;
     stderr = &uart3_out;
     lcd_init();
@@ -92,7 +92,7 @@ static inline void heartbeat(void) {
     static uint32_t prev_time;
     uint32_t new_time;
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
-        new_time = counter_1;
+        new_time = count_1;
     }
 
     if (new_time != prev_time) {
