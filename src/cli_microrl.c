@@ -10,6 +10,14 @@
 #define NUM_ELEMS(x)        (sizeof(x) / sizeof((x)[0]))
 #define UART_STATUS_MASK    0x00FF
 
+void cli_print_help(const char *const *argv);
+void cli_print_cmd_error(void);
+void cli_print_cmd_arg_error(void);
+void cli_print_ver(const char *const *argv);
+void cli_print_ascii_tbls(const char *const *argv);
+void cli_handle_month(const char *const *argv);
+
+
 typedef struct cli_cmd {
     PGM_P cmd;
     PGM_P help;

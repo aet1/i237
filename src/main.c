@@ -32,12 +32,17 @@ static inline void init_uart(void)
     uart3_init(UART_BAUD_SELECT(UART_BAUD, F_CPU));
     stderr = &uart3_out;
     stdout = stdin = &uart0_io;
+    lcd_init();
+    lcd_clrscr();
+}
+
+
+static inline void init_cli(void)
+{
     // Call init with ptr to microrl instance and print callback
     microrl_init (prl, cli_print);
     // Set callback for execute
     microrl_set_execute_callback (prl, cli_execute);
-    lcd_init();
-    lcd_clrscr();
 }
 
 static inline void init_count(void)
@@ -85,6 +90,7 @@ void main (void)
     init_count();
     sei();
     start_print();
+    init_cli();
 
     while (1) {
         heartbeat();

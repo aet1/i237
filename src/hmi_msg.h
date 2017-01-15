@@ -4,8 +4,8 @@
 #define STUD_NAME "Aet Udusaar"
 #define GET_MONTH_NAME "Enter Month name first letter >"
 #define VER_FW "Version: "GIT_DESCR " built on: " __DATE__" "__TIME__
-#define VER_LIBC "\n avr-libc version: " __AVR_LIBC_VERSION_STRING__
-#define VER_GCC "\n avr-gcc version: " __VERSION__
+#define VER_LIBC "avr-libc version: " __AVR_LIBC_VERSION_STRING__
+#define VER_GCC "avr-gcc version: " __VERSION__
 #define UPTIME_TEXT "Uptime is"
 #define CLI_HELP_MSG "Implemented commands:"
 #define PRT_CMD_ERR "Command not implemented.\n Use <help> to get help."
