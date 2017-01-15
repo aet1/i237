@@ -1,3 +1,21 @@
+/*  Copyright 2017 Aet Udusaar
+
+    This file is part of i237.
+
+    i237 is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    i237 is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with i237.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -11,11 +29,11 @@
 #include <avr/interrupt.h>
 #include "../lib/andygock_avr-uart/uart.h"
 #include "../lib/helius_microrl/microrl.h"
+#include "../lib/matejx_avr_lib/mfrc522.h"
+#include "rfid.h"
 #include "cli_microrl.h"
 
-#define BLINK_DELAY_MS 100
 #define UART_BAUD 9600
-#define COUNT
 
 // Create microrl object and pointer on it
 static microrl_t rl;
@@ -45,6 +63,14 @@ static inline void init_cli(void)
     microrl_set_execute_callback (prl, cli_execute);
 }
 
+
+static inline void init_rfid_reader(void)
+{
+    MFRC522_init();
+    PCD_Init();
+}
+
+
 static inline void init_count(void)
 {
     count_1 = 0;
@@ -55,6 +81,7 @@ static inline void init_count(void)
     OCR1A = 62549;
     TIMSK1 |= _BV(OCIE1A);
 }
+
 
 static inline void start_print(void)
 {
@@ -91,12 +118,14 @@ void main (void)
     sei();
     start_print();
     init_cli();
+    init_rfid_reader();
 
     while (1) {
         heartbeat();
         microrl_insert_char (prl, cli_get_char());
     }
 }
+
 
 ISR(TIMER1_COMPA_vect)
 {
